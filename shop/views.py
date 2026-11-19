@@ -1,11 +1,31 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from .models import Order, OrderItem, Product
+from .models import Category, Order, OrderItem, Product
 
 
-def home(request):
+def home(request, category_slug=None):
+  category = None
+  categories = Category.objects.all()
   products = Product.objects.all().order_by('-created_at')
-  return render(request, 'shop/product_list.html', {'products': products})
+
+  if category_slug:
+    category = get_object_or_404(Category, slug=category_slug)
+    products = products.filter(category=category)
+
+  query = request.GET.get('q')
+  if query:
+    products = products.filter(
+        Q(title__icontains=query) | Q(description__icontains=query)
+    )
+
+  context = {
+      'category': category,
+      'categories': categories,
+      'products': products,
+      'query': query,
+  }
+  return render(request, 'shop/product_list.html', context)
 
 
 def product_detail(request, pk):

@@ -1,0 +1,30 @@
+{% extends 'shop/base.html' %}
+
+{% block content %}
+<div class="container">
+  <h2>Manage Shop Products</h2>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Product</button>
+  </form>
+
+  <hr>
+
+  <h3>Current Inventory</h3>
+  <ul>
+    {% for product in products %}
+      <li>
+        {{ product.title }} — {{ product.price }} som ({{ product.category.name }})
+        <form method="post" action="{% url 'shop:delete_product' product.pk %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit">Delete</button>
+        </form>
+      </li>
+    {% empty %}
+      <li>No products yet.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

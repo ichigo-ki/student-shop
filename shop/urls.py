@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import auth_views, views
 
 app_name = 'shop'
 
@@ -19,4 +19,14 @@ urlpatterns = [
         name='remove_from_cart',
     ),
     path('checkout/', views.checkout, name='checkout'),
+    # Auth & shop-owner management routes
+    path('register/', auth_views.register_view, name='register'),
+    path('login/', auth_views.StudentLoginView.as_view(), name='login'),
+    path('logout/', auth_views.StudentLogoutView.as_view(), name='logout'),
+    path('manage/', auth_views.manage_products, name='manage_products'),
+    path(
+        'manage/delete/<int:pk>/',
+        auth_views.delete_product,
+        name='delete_product',
+    ),
 ]

@@ -127,13 +127,16 @@ class CartService(BaseShopService):
     if quantity <= 0:
       raise ShopRuleError('Quantity must be at least 1.')
 
-    order = self._get_active_order(create=True)
-    existing_item = OrderItem.objects.filter(
-        order=order, product=product
-    ).first()
+    existing_order = self._get_active_order(create=False)
+    existing_item = (
+        OrderItem.objects.filter(order=existing_order, product=product).first()
+        if existing_order
+        else None
+    )
     new_qty = (existing_item.quantity if existing_item else 0) + quantity
     self._validate_stock(product, new_qty)
 
+    order = existing_order or self._get_active_order(create=True)
     if existing_item:
       existing_item.quantity = new_qty
       existing_item.save()

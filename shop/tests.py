@@ -165,6 +165,7 @@ class AuthAndAccessControlTests(TestCase):
             'title': 'Nitro Energy 0.5L',
             'description': 'Campus favorite',
             'price': '110.00',
+            'stock': '15',
         },
     )
     self.assertRedirects(post_response, reverse('shop:manage_products'))
@@ -211,9 +212,75 @@ class CartAndBusinessRuleTests(TestCase):
       self.client.post(reverse('shop:add_to_cart', args=[self.buldak.pk]))
 
     order = Order.objects.get(buyer=self.student, is_completed=False)
-    self.assertEqual(order.get_cart_total, Decimal('800.00'))
+    self.assertEqual(order.get_cart_total, Decimal('760.00'))
 
     response = self.client.post(reverse('shop:checkout'))
     self.assertEqual(response.status_code, 200)
     order.refresh_from_db()
     self.assertTrue(order.is_completed)
+
+
+class OOPAndStockTests(TestCase):
+  def setUp(self):
+    self.category = Category.objects.create(name='Snacks', slug='snacks')
+    self.item = Product.objects.create(
+      category=self.category,
+           title='Campus Snack Pack',
+           price=Decimal('200.00'),
+           stock=5,
+    )
+    self.out_of_stock_item = Product.objects.create(
+           category=self.category,
+           title='Sold Out Soda',
+           price=Decimal('90.00'),
+           stock=0,
+    )
+    self.student = User.objects.create_user(
+           username='oop_student',
+           password='StrongPassword123!',
+    )
+    self.client.login(username='oop_student', password='StrongPassword123!')
+
+  def test_below_800_som_uses_standard_pricing(self):
+    for _ in range(3):  # 3 x 200 = 600 KGS (< 800 KGS)
+      self.client.post(reverse('shop:add_to_cart', args=[self.item.pk]))
+
+    order = Order.objects.get(buyer=self.student, is_completed=False)
+    self.assertEqual(order.get_subtotal, Decimal('600.00'))
+    self.assertEqual(order.get_discount_amount, Decimal('0.00'))
+    self.assertEqual(order.get_cart_total, Decimal('600.00'))
+
+  def test_bulk_discount_and_stock_deduction_at_800_som(self):
+    for _ in range(4):  # 4 x 200 = 800 KGS (>= 800 KGS -> 5% off = 760 KGS)
+      response = self.client.post(
+          reverse('shop:add_to_cart', args=[self.item.pk])
+      )
+      self.assertEqual(response.status_code, 302)
+
+    order = Order.objects.get(buyer=self.student, is_completed=False)
+    self.assertEqual(order.get_subtotal, Decimal('800.00'))
+    self.assertEqual(order.get_discount_amount, Decimal('40.00'))
+    self.assertEqual(order.get_cart_total, Decimal('760.00'))
+
+    checkout_response = self.client.post(reverse('shop:checkout'))
+    self.assertEqual(checkout_response.status_code, 200)
+
+    order.refresh_from_db()
+    self.item.refresh_from_db()
+    self.assertTrue(order.is_completed)
+    self.assertEqual(self.item.stock, 1)  # 5 initial - 4 bought = 1 left
+
+  def test_cannot_add_more_than_available_stock(self):
+    for _ in range(6):  # stock is only 5
+      self.client.post(reverse('shop:add_to_cart', args=[self.item.pk]))
+
+    order = Order.objects.get(buyer=self.student, is_completed=False)
+    self.assertEqual(order.get_cart_items_count, 5)
+
+  def test_cannot_add_out_of_stock_product(self):
+    self.client.post(
+        reverse('shop:add_to_cart', args=[self.out_of_stock_item.pk])
+    )
+    self.assertFalse(
+        Order.objects.filter(buyer=self.student, is_completed=False).exists()
+    )

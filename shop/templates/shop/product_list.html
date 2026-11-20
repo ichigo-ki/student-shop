@@ -1,30 +1,85 @@
 {% extends 'shop/base.html' %}
 
-{% block title %}Catalog - Student Shop{% endblock %}
+{% block title %}
+{% if category %}{{ category.name }} - Student Shop{% else %}Catalog - Student Shop{% endif %}
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12 text-center mb-4">
-        <h1>Welcome to Student Shop</h1>
-        <p class="text-muted">Browse items shared by fellow campus students!</p>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h2 fw-bold mb-1">
+            {% if category %}
+            {{ category.name }}
+            {% elif query %}
+            Search results for "{{ query }}"
+            {% else %}
+            Campus Snacks &amp; Drinks
+            {% endif %}
+        </h1>
+        <p class="text-muted mb-0">Fresh snacks and cold drinks available on campus.</p>
+    </div>
+
+    <!-- Category Filter Pills -->
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'shop:home' %}"
+            class="btn btn-sm {% if not category %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            All
+        </a>
+        {% for cat in categories %}
+        <a href="{% url 'shop:product_list_by_category' cat.slug %}"
+            class="btn btn-sm {% if category and category.slug == cat.slug %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            {{ cat.name }}
+        </a>
+        {% endfor %}
     </div>
 </div>
 
-<div class="row row-cols-1 row-cols-md-3 g-4">
-    <!-- Placeholder card representing future dynamic backend data from Ima -->
+{% if query %}
+<div class="alert alert-light border d-flex justify-content-between align-items-center mb-4">
+    <span>Showing matches for <strong>"{{ query }}"</strong></span>
+    <a href="{% url 'shop:home' %}" class="btn btn-sm btn-outline-secondary">Clear search</a>
+</div>
+{% endif %}
+
+{% if products %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+    {% for product in products %}
     <div class="col">
-        <div class="card h-100 shadow-sm">
-            <svg class="bd-placeholder-img card-img-top" width="100%" height="200" xmlns="http://www.w3.org/2000/svg" role="img" preserveAspectRatio="xMidYMid slice">
-                <rect width="100%" height="100%" fill="#dee2e6"></rect>
-                <text x="50%" y="50%" fill="#6c757d" dy=".3em">Product Image</text>
-            </svg>
+        <div class="card h-100 shadow-sm border-0">
+            {% if product.image %}
+            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.title }}"
+                style="height: 200px; object-fit: cover;">
+            {% else %}
+            <div class="bg-secondary-subtle text-secondary d-flex align-items-center justify-content-center"
+                style="height: 200px;">
+                <span class="small">No Image</span>
+            </div>
+            {% endif %}
+
             <div class="card-body d-flex flex-column">
-                <h5 class="card-title">Calculus Textbook (Example)</h5>
-                <p class="card-text text-success fw-bold">$25.00</p>
-                <p class="card-text text-muted small">Condition: Like New</p>
-                <a href="#" class="btn btn-outline-primary mt-auto">View Details</a>
+                {% if product.category %}
+                <span class="badge bg-light text-dark border align-self-start mb-2">{{ product.category.name }}</span>
+                {% endif %}
+                <h5 class="card-title fw-semibold">{{ product.title }}</h5>
+                <p class="card-text text-success fw-bold fs-5 mb-2">{{ product.price }} KGS</p>
+                <p class="card-text text-muted small mb-3">{{ product.description|truncatewords:15 }}</p>
+
+                <div class="mt-auto d-flex gap-2">
+                    <a href="{% url 'shop:product_detail' product.pk %}"
+                        class="btn btn-outline-primary btn-sm flex-grow-1">Details</a>
+                    <a href="{% url 'shop:add_to_cart' product.pk %}" class="btn btn-primary btn-sm flex-grow-1">Add to
+                        Cart</a>
+                </div>
             </div>
         </div>
     </div>
+    {% endfor %}
 </div>
+{% else %}
+<div class="text-center py-5 bg-white rounded shadow-sm">
+    <h4 class="text-muted">No snacks or drinks found</h4>
+    <p class="text-muted small mb-3">Try clearing your search or switching categories.</p>
+    <a href="{% url 'shop:home' %}" class="btn btn-primary btn-sm">View All Products</a>
+</div>
+{% endif %}
 {% endblock %}

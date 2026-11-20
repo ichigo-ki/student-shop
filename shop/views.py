@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 from .models import Category, Order, Product
 from .services import CartService, CheckoutService, PricingFactory, ShopRuleError
 
@@ -84,4 +85,24 @@ def checkout(request):
       )
     except ShopRuleError as exc:
       messages.error(request, str(exc))
+  return redirect('shop:cart_detail')
+
+
+@login_required
+@require_POST
+def update_cart_quantity(request, item_id):
+  action = request.POST.get('action')
+  delta = (
+      1 if action == 'increase' else -1 if action == 'decrease' else 0
+  )
+
+  if delta == 0:
+    return redirect('shop:view_cart')
+
+  service = CartService(request.user)
+  try:
+    service.update_quantity(item_id=item_id, delta=delta)
+  except ShopRuleError as exc:
+    messages.error(request, str(exc))
+
   return redirect('shop:cart_detail')

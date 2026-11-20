@@ -30,7 +30,21 @@
                                     <td class="fw-semibold">{{ item.product.title }}</td>
                                     <td class="text-end text-muted">{{ item.product.price }} KGS</td>
                                     <td class="text-center">
-                                        <span class="badge bg-secondary-subtle text-dark px-3 py-2">{{ item.quantity }}</span>
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <form method="post" action="{% url 'shop:update_cart_quantity' item.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="decrease">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0" aria-label="Decrease quantity">&minus;</button>
+                                            </form>
+
+                                            <span class="badge bg-secondary-subtle text-dark px-2 py-1">{{ item.quantity }}</span>
+
+                                            <form method="post" action="{% url 'shop:update_cart_quantity' item.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="increase">
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0" aria-label="Increase quantity">+</button>
+                                            </form>
+                                        </div>
                                     </td>
                                     <td class="text-end fw-semibold">{{ item.get_total }} KGS</td>
                                     <td class="text-end">

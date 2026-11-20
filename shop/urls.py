@@ -29,4 +29,9 @@ urlpatterns = [
         auth_views.delete_product,
         name='delete_product',
     ),
+    path(
+        'cart/update/<int:item_id>/',
+        views.update_cart_quantity,
+        name='update_cart_quantity',
+    ),
 ]

@@ -146,6 +146,24 @@ class CartService(BaseShopService):
         order=order, product=product, quantity=quantity
     )
 
+  def update_quantity(self, item_id: int, delta: int) -> None:
+    order = self._get_active_order(create=False)
+    if not order:
+      raise ShopRuleError("No active cart found.")
+
+    item = OrderItem.objects.filter(pk=item_id, order=order).first()
+    if not item:
+      raise ShopRuleError("Cart item not found.")
+
+    new_qty = item.quantity + delta
+    if new_qty <= 0:
+      item.delete()
+      return
+
+    self._validate_stock(item.product, new_qty)
+    item.quantity = new_qty
+    item.save()
+
   def remove_item(self, item_id: int) -> None:
     order = self._get_active_order(create=False)
     if not order:

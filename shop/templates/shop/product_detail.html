@@ -1,0 +1,58 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}{{ product.title }} - Student Shop{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'shop:home' %}">All Snacks &amp; Drinks</a></li>
+        {% if product.category %}
+            <li class="breadcrumb-item">
+                <a href="{% url 'shop:product_list_by_category' product.category.slug %}">{{ product.category.name }}</a>
+            </li>
+        {% endif %}
+        <li class="breadcrumb-item active" aria-current="page">{{ product.title }}</li>
+    </ol>
+</nav>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+    <div class="row g-0">
+        <!-- Product Image Column -->
+        <div class="col-md-6 bg-secondary-subtle d-flex align-items-center justify-content-center" style="min-height: 360px;">
+            {% if product.image %}
+                <img src="{{ product.image.url }}" class="img-fluid w-100 h-100" alt="{{ product.title }}" style="max-height: 450px; object-fit: cover;">
+            {% else %}
+                <span class="text-secondary">No Image Available</span>
+            {% endif %}
+        </div>
+
+        <!-- Product Info Column -->
+        <div class="col-md-6 p-4 p-lg-5 d-flex flex-column">
+            {% if product.category %}
+                <a href="{% url 'shop:product_list_by_category' product.category.slug %}" class="badge bg-light text-dark border text-decoration-none align-self-start mb-2">
+                    {{ product.category.name }}
+                </a>
+            {% endif %}
+
+            <h1 class="h2 fw-bold mb-2">{{ product.title }}</h1>
+            <p class="text-success fs-3 fw-bold mb-3">{{ product.price }} KGS</p>
+
+            {% if product.created_at %}
+                <p class="text-muted small mb-3">Added on {{ product.created_at|date:"M d, Y" }}</p>
+            {% endif %}
+
+            <hr>
+
+            <h6 class="text-uppercase text-muted small fw-semibold">Description</h6>
+            <p class="text-body mb-4">
+                {{ product.description|default:"No description provided for this item." }}
+            </p>
+
+            <div class="d-grid gap-2 mt-auto">
+                <a href="{% url 'shop:add_to_cart' product.pk %}" class="btn btn-primary btn-lg">Add to Cart</a>
+                <a href="{% url 'shop:home' %}" class="btn btn-outline-secondary">Back to Catalog</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

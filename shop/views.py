@@ -1,7 +1,9 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
-from .models import Category, Order, OrderItem, Product
+from .models import Category, Order, Product
+from .services import CartService, CheckoutService, PricingFactory, ShopRuleError
 
 
 def home(request, category_slug=None):
@@ -36,38 +38,50 @@ def product_detail(request, pk):
 @login_required
 def add_to_cart(request, pk):
   product = get_object_or_404(Product, pk=pk)
-  order, _ = Order.objects.get_or_create(buyer=request.user, is_completed=False)
-  order_item, created = OrderItem.objects.get_or_create(
-      order=order, product=product
-  )
-
-  if not created:
-    order_item.quantity += 1
-    order_item.save()
-
+  cart_service = CartService(request.user)
+  try:
+    cart_service.add_product(product, quantity=1)
+    messages.success(request, f'Added "{product.title}" to your cart.')
+  except ShopRuleError as exc:
+    messages.error(request, str(exc))
   return redirect('shop:cart_detail')
 
 
 @login_required
 def cart_detail(request):
   order = Order.objects.filter(buyer=request.user, is_completed=False).first()
-  return render(request, 'shop/cart.html', {'order': order})
+  pricing_strategy = None
+  if order:
+    pricing_strategy = PricingFactory.get_strategy(order.get_subtotal)
+
+  context = {
+      'order': order,
+      'pricing_strategy': pricing_strategy,
+      'bulk_threshold': PricingFactory.BULK_THRESHOLD,
+  }
+  return render(request, 'shop/cart.html', context)
 
 
 @login_required
 def remove_from_cart(request, item_id):
-  order_item = get_object_or_404(
-      OrderItem, id=item_id, order__buyer=request.user, order__is_completed=False
-  )
-  order_item.delete()
+  cart_service = CartService(request.user)
+  try:
+    cart_service.remove_item(item_id)
+    messages.info(request, 'Item removed from your cart.')
+  except ShopRuleError as exc:
+    messages.error(request, str(exc))
   return redirect('shop:cart_detail')
 
 
 @login_required
 def checkout(request):
-  order = Order.objects.filter(buyer=request.user, is_completed=False).first()
-  if order and request.method == 'POST':
-    order.is_completed = True
-    order.save()
-    return render(request, 'shop/checkout_success.html', {'order': order})
+  if request.method == 'POST':
+    checkout_service = CheckoutService(request.user)
+    try:
+      completed_order = checkout_service.complete_checkout()
+      return render(
+          request, 'shop/checkout_success.html', {'order': completed_order}
+      )
+    except ShopRuleError as exc:
+      messages.error(request, str(exc))
   return redirect('shop:cart_detail')

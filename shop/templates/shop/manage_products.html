@@ -16,7 +16,10 @@
   <ul>
     {% for product in products %}
       <li>
-        {{ product.title }} — {{ product.price }} som ({{ product.category.name }})
+        {{ product.title }} — {{ product.price }} som ({{ product.category.name }}) | Stock: <strong>{{ product.stock }}</strong>
+        {% if product.stock == 0 %}
+          <span class="badge bg-danger ms-1">Out of stock</span>
+        {% endif %}
         <form method="post" action="{% url 'shop:delete_product' product.pk %}" style="display:inline;">
           {% csrf_token %}
           <button type="submit">Delete</button>

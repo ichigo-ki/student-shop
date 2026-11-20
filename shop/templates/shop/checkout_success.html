@@ -1,0 +1,57 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Order Confirmed - Student Shop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-sm text-center p-4 p-md-5">
+            <div class="mb-3">
+                <span class="badge rounded-pill bg-success-subtle text-success px-3 py-2 fs-6">
+                    Order Confirmed
+                </span>
+            </div>
+
+            <h1 class="h2 fw-bold mb-2">Thank You for Your Order!</h1>
+            <p class="text-muted mb-4">
+                Your campus snack &amp; drink order has been placed successfully.
+            </p>
+
+            {% if order %}
+                <div class="bg-light rounded p-3 p-md-4 text-start mb-4 border">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Order Number</span>
+                        <span class="fw-bold">#{{ order.id }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Total Items</span>
+                        <span class="fw-semibold">{{ order.get_cart_items_count }}</span>
+                    </div>
+
+                    {% if order.orderitem_set.all %}
+                        <hr class="my-2">
+                        <ul class="list-unstyled small mb-2">
+                            {% for item in order.orderitem_set.all %}
+                                <li class="d-flex justify-content-between py-1">
+                                    <span>{{ item.product.title }} &times; {{ item.quantity }}</span>
+                                    <span class="text-muted">{{ item.get_total }} KGS</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+
+                    <hr class="my-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">Total Paid</span>
+                        <span class="fs-5 fw-bold text-success">{{ order.get_cart_total }} KGS</span>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="d-grid gap-2">
+                <a href="{% url 'shop:home' %}" class="btn btn-primary btn-lg">Back to Snacks &amp; Drinks</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

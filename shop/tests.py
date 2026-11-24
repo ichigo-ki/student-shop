@@ -88,6 +88,26 @@ class CatalogAndSearchTests(TestCase):
     self.assertContains(response, 'Buldak Hot Chicken Ramen')
     self.assertNotContains(response, 'Flash Up Energy')
 
+  def test_price_sorting(self):
+    asc_response = self.client.get(reverse('shop:home'), {'sort': 'price_asc'})
+    asc_products = list(asc_response.context['products'])
+    self.assertEqual(asc_products, [self.energy, self.buldak])  # 95 then 180
+
+    desc_response = self.client.get(reverse('shop:home'), {'sort': 'price_desc'})
+    desc_products = list(desc_response.context['products'])
+    self.assertEqual(desc_products, [self.buldak, self.energy])  # 180 then 95
+
+  def test_in_stock_only_filter(self):
+    sold_out = Product.objects.create(
+        category=self.drinks,
+        title='Sold Out Juice',
+        price=Decimal('70.00'),
+        stock=0,
+    )
+    response = self.client.get(reverse('shop:home'), {'in_stock': '1'})
+    self.assertContains(response, 'Flash Up Energy')
+    self.assertNotContains(response, sold_out.title)
+
 
 class AuthAndAccessControlTests(TestCase):
 

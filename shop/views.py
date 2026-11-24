@@ -4,29 +4,44 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .models import Category, Order, Product
-from .services import CartService, CheckoutService, OrderHistoryService, PricingFactory, ShopRuleError
+from .services import (
+    CartService,
+    CheckoutService,
+    OrderHistoryService,
+    PricingFactory,
+    ProductCatalogService,
+    ShopRuleError,
+)
 
 
 def home(request, category_slug=None):
   category = None
   categories = Category.objects.all()
-  products = Product.objects.all().order_by('-created_at')
 
   if category_slug:
     category = get_object_or_404(Category, slug=category_slug)
-    products = products.filter(category=category)
 
-  query = request.GET.get('q')
-  if query:
-    products = products.filter(
-        Q(title__icontains=query) | Q(description__icontains=query)
-    )
+  query = request.GET.get('q', '').strip()
+  in_stock_only = request.GET.get('in_stock') == '1'
+  sort_by = request.GET.get('sort', 'newest')
+  if sort_by not in ProductCatalogService.SORT_OPTIONS:
+    sort_by = 'newest'
+
+  catalog_service = ProductCatalogService()
+  products = catalog_service.get_products(
+      category=category,
+      query=query,
+      in_stock_only=in_stock_only,
+      sort_by=sort_by,
+  )
 
   context = {
       'category': category,
       'categories': categories,
       'products': products,
       'query': query,
+      'in_stock_only': in_stock_only,
+      'sort_by': sort_by,
   }
   return render(request, 'shop/product_list.html', context)
 

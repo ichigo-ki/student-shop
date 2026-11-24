@@ -213,3 +213,14 @@ class CheckoutService(BaseShopService):
     order.is_completed = True
     order.save(update_fields=['is_completed'])
     return order
+
+
+class OrderHistoryService(BaseShopService):
+  """Retrieves completed past orders for the authenticated buyer."""
+
+  def get_completed_orders(self):
+    return (
+        Order.objects.filter(buyer=self._user, is_completed=True)
+        .prefetch_related('orderitem_set__product')
+        .order_by('-created_at', '-id')
+    )

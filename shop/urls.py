@@ -19,6 +19,7 @@ urlpatterns = [
         name='remove_from_cart',
     ),
     path('checkout/', views.checkout, name='checkout'),
+    path('orders/', views.order_history, name='order_history'),
     # Auth & shop-owner management routes
     path('register/', auth_views.register_view, name='register'),
     path('login/', auth_views.StudentLoginView.as_view(), name='login'),

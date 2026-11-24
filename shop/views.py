@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 from .models import Category, Order, Product
-from .services import CartService, CheckoutService, PricingFactory, ShopRuleError
+from .services import CartService, CheckoutService, OrderHistoryService, PricingFactory, ShopRuleError
 
 
 def home(request, category_slug=None):
@@ -106,3 +106,10 @@ def update_cart_quantity(request, item_id):
     messages.error(request, str(exc))
 
   return redirect('shop:cart_detail')
+
+
+@login_required
+def order_history(request):
+  service = OrderHistoryService(request.user)
+  orders = service.get_completed_orders()
+  return render(request, 'shop/order_history.html', {'orders': orders})

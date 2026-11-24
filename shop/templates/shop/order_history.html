@@ -1,0 +1,75 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}My Orders - Student Shop{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">My Past Orders</h2>
+    <a href="{% url 'shop:home' %}" class="btn btn-outline-dark btn-sm">Continue Shopping</a>
+</div>
+
+{% if orders %}
+    <div class="d-flex flex-column gap-4">
+        {% for order in orders %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <span class="fw-bold">Order #{{ order.id }}</span>
+                        <span class="text-secondary mx-2">|</span>
+                        <small>{{ order.created_at|date:"M d, Y H:i" }}</small>
+                    </div>
+                    <span class="badge bg-success">Completed ({{ order.get_cart_items_count }} item{{ order.get_cart_items_count|pluralize }})</span>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end">Unit Price</th>
+                                    <th class="text-end">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.orderitem_set.all %}
+                                    <tr>
+                                        <td>
+                                            {% if item.product %}
+                                                {{ item.product.title }}
+                                            {% else %}
+                                                <span class="text-muted fst-italic">Deleted Product</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">{{ item.quantity }}</td>
+                                        <td class="text-end">
+                                            {% if item.product %}{{ item.product.price }} KGS{% else %}-{% endif %}
+                                        </td>
+                                        <td class="text-end fw-semibold">{{ item.get_total }} KGS</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white d-flex flex-column align-items-end">
+                    <div class="small text-muted">Subtotal: {{ order.get_subtotal }} KGS</div>
+                    {% if order.get_discount_amount > 0 %}
+                        <div class="small text-success">Bulk Discount: -{{ order.get_discount_amount }} KGS</div>
+                    {% endif %}
+                    <div class="fs-5 fw-bold mt-1">Total Paid: {{ order.get_cart_total }} KGS</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card shadow-sm text-center py-5">
+        <div class="card-body">
+            <h5 class="text-muted mb-3">You haven't placed any orders yet.</h5>
+            <a href="{% url 'shop:home' %}" class="btn btn-primary">Browse Snacks &amp; Drinks</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

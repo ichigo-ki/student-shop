@@ -284,3 +284,56 @@ class OOPAndStockTests(TestCase):
     self.assertFalse(
         Order.objects.filter(buyer=self.student, is_completed=False).exists()
     )
+
+class OrderHistoryTests(TestCase):
+
+  def setUp(self):
+    self.category = Category.objects.create(name='Drinks', slug='drinks')
+    self.coffee = Product.objects.create(
+        category=self.category,
+        title='Iced Latte',
+        price=Decimal('250.00'),
+        stock=10,
+    )
+    self.student = User.objects.create_user(
+        username='history_student',
+        password='StrongPassword123!',
+    )
+    self.other_student = User.objects.create_user(
+        username='other_student',
+        password='StrongPassword123!',
+    )
+
+  def test_anonymous_user_redirected_from_order_history(self):
+    response = self.client.get(reverse('shop:order_history'))
+    self.assertEqual(response.status_code, 302)
+    self.assertIn(reverse('shop:login'), response.url)
+
+  def test_order_history_shows_only_own_completed_orders(self):
+    # Completed order for student (4 x 250 = 1000 KGS -> 5% discount = 950 KGS)
+    completed_order = Order.objects.create(
+        buyer=self.student, is_completed=True
+    )
+    OrderItem.objects.create(
+        order=completed_order, product=self.coffee, quantity=4
+    )
+
+    # Active (incomplete) cart for student — should NOT appear in order history
+    active_cart = Order.objects.create(buyer=self.student, is_completed=False)
+    OrderItem.objects.create(order=active_cart, product=self.coffee, quantity=1)
+
+    # Completed order for another user — should NOT appear
+    other_order = Order.objects.create(
+        buyer=self.other_student, is_completed=True
+    )
+    OrderItem.objects.create(order=other_order, product=self.coffee, quantity=2)
+
+    self.client.login(username='history_student', password='StrongPassword123!')
+    response = self.client.get(reverse('shop:order_history'))
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(list(response.context['orders']), [completed_order])
+    self.assertContains(response, f'Order #{completed_order.id}')
+    self.assertContains(response, '950.00 KGS')
+    self.assertNotContains(response, f'Order #{active_cart.id}')
+    self.assertNotContains(response, f'Order #{other_order.id}')

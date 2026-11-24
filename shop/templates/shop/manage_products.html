@@ -1,33 +1,122 @@
 {% extends 'shop/base.html' %}
 
+{% block title %}Manage Products - Student Shop{% endblock %}
+
 {% block content %}
-<div class="container">
-  <h2>Manage Shop Products</h2>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 fw-bold mb-1">Manage Shop Products</h1>
+        <p class="text-muted small mb-0">Add new campus snacks &amp; drinks or manage current inventory.</p>
+    </div>
+    <a href="{% url 'shop:home' %}" class="btn btn-outline-secondary btn-sm">View Storefront</a>
+</div>
 
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Add Product</button>
-  </form>
+<div class="row g-4">
+    <!-- Add Product Form -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm p-4">
+            <h2 class="h5 fw-bold mb-3">Add New Product</h2>
 
-  <hr>
+            <form method="post" action="{% url 'shop:manage_products' %}" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
 
-  <h3>Current Inventory</h3>
-  <ul>
-    {% for product in products %}
-      <li>
-        {{ product.title }} — {{ product.price }} som ({{ product.category.name }}) | Stock: <strong>{{ product.stock }}</strong>
-        {% if product.stock == 0 %}
-          <span class="badge bg-danger ms-1">Out of stock</span>
-        {% endif %}
-        <form method="post" action="{% url 'shop:delete_product' product.pk %}" style="display:inline;">
-          {% csrf_token %}
-          <button type="submit">Delete</button>
-        </form>
-      </li>
-    {% empty %}
-      <li>No products yet.</li>
-    {% endfor %}
-  </ul>
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger small" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <div>{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-semibold small">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <div class="form-text small">{{ field.help_text|safe }}</div>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="text-danger small mt-1">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Inventory Table -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h2 class="h5 fw-bold mb-0">Current Inventory</h2>
+                <span class="badge bg-secondary-subtle text-dark">{{ products|length }} items</span>
+            </div>
+
+            {% if products %}
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">Product</th>
+                                <th scope="col">Category</th>
+                                <th scope="col" class="text-end">Price</th>
+                                <th scope="col" class="text-center">Stock</th>
+                                <th scope="col" class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for product in products %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if product.image %}
+                                                <img src="{{ product.image.url }}" alt="{{ product.title }}" class="rounded" style="width: 44px; height: 44px; object-fit: cover;">
+                                            {% else %}
+                                                <div class="bg-secondary-subtle text-secondary rounded d-flex align-items-center justify-content-center small" style="width: 44px; height: 44px;">
+                                                    &mdash;
+                                                </div>
+                                            {% endif %}
+                                            <a href="{% url 'shop:product_detail' product.pk %}" class="fw-semibold text-decoration-none text-dark">
+                                                {{ product.title }}
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if product.category %}
+                                            <span class="badge bg-light text-dark border">{{ product.category.name }}</span>
+                                        {% else %}
+                                            <span class="text-muted small">&mdash;</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end fw-semibold text-success">{{ product.price }} KGS</td>
+                                    <td class="text-center">
+                                        {% if product.stock == 0 %}
+                                            <span class="badge bg-danger">Out of stock</span>
+                                        {% else %}
+                                            <span class="fw-semibold">{{ product.stock }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">
+                                        <form method="post" action="{% url 'shop:delete_product' product.pk %}" class="d-inline m-0" onsubmit="return confirm('Delete {{ product.title }}?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="card-body text-center py-5">
+                    <p class="text-muted mb-0">No products yet. Use the form on the left to add your first snack or drink.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 {% endblock %}

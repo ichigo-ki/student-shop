@@ -305,6 +305,15 @@ class OOPAndStockTests(TestCase):
         Order.objects.filter(buyer=self.student, is_completed=False).exists()
     )
 
+  def test_cart_disables_increase_button_at_max_stock(self):
+    for _ in range(5):  # stock is 5
+      self.client.post(reverse('shop:add_to_cart', args=[self.item.pk]))
+
+    response = self.client.get(reverse('shop:cart_detail'))
+    self.assertEqual(response.status_code, 200)
+    self.assertContains(response, 'Max stock (5)')
+    self.assertContains(response, 'disabled>+')
+
 class OrderHistoryTests(TestCase):
 
   def setUp(self):

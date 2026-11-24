@@ -42,9 +42,14 @@
                                             <form method="post" action="{% url 'shop:update_cart_quantity' item.id %}" class="d-inline">
                                                 {% csrf_token %}
                                                 <input type="hidden" name="action" value="increase">
-                                                <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0" aria-label="Increase quantity">+</button>
+                                                <button type="submit" class="btn btn-sm btn-outline-secondary px-2 py-0"
+                                                    aria-label="Increase quantity"
+                                                    {% if not item.product or item.quantity >= item.product.stock %}disabled{% endif %}>+</button>
                                             </form>
                                         </div>
+                                        {% if item.product and item.quantity >= item.product.stock %}
+                                            <div class="text-muted" style="font-size: 0.72rem;">Max stock ({{ item.product.stock }})</div>
+                                        {% endif %}
                                     </td>
                                     <td class="text-end fw-semibold">{{ item.get_total }} KGS</td>
                                     <td class="text-end">
@@ -60,42 +65,43 @@
             </div>
         </div>
 
-     <!-- Order Summary & Checkout -->
-     <div class="col-lg-4">
-         <div class="card border-0 shadow-sm">
-             <div class="card-body p-4">
-                 <h5 class="card-title fw-bold mb-3">Order Summary</h5>
-                 <div class="d-flex justify-content-between mb-2">
-                     <span class="text-muted">Total Items</span>
-                     <span class="fw-semibold">{{ order.get_cart_items_count }}</span>
-                 </div>
-                 <div class="d-flex justify-content-between mb-2">
-                     <span class="text-muted">Subtotal</span>
-                     <span class="fw-semibold">{{ order.get_subtotal }} KGS</span>
-                 </div>
-                 {% if order.get_discount_amount > 0 %}
-                     <div class="d-flex justify-content-between mb-2 text-success">
-                         <span>Bulk Discount (5%)</span>
-                         <span class="fw-semibold">-{{ order.get_discount_amount }} KGS</span>
-                     </div>
-                 {% else %}
-                     <p class="small text-muted mb-2">
-                         Tip: Orders of {{ bulk_threshold|default:"800" }} KGS or more get a <strong>5% discount</strong>.
-                     </p>
-                 {% endif %}
-                 <hr>
-                 <div class="d-flex justify-content-between align-items-center mb-4">
-                     <span class="fs-5 fw-bold">Total</span>
-                     <span class="fs-4 fw-bold text-success">{{ order.get_cart_total }} KGS</span>
-                 </div>
+        <!-- Order Summary & Checkout -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Order Summary</h5>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Items</span>
+                        <span class="fw-semibold">{{ order.get_cart_items_count }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <span class="fw-semibold">{{ order.get_subtotal }} KGS</span>
+                    </div>
+                    {% if order.get_discount_amount > 0 %}
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Bulk Discount (5%)</span>
+                            <span class="fw-semibold">-{{ order.get_discount_amount }} KGS</span>
+                        </div>
+                    {% else %}
+                        <p class="small text-muted mb-2">
+                            Tip: Orders of {{ bulk_threshold|default:"800" }} KGS or more get a <strong>5% discount</strong>.
+                        </p>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fs-5 fw-bold">Total</span>
+                        <span class="fs-4 fw-bold text-success">{{ order.get_cart_total }} KGS</span>
+                    </div>
 
-                 <form method="post" action="{% url 'shop:checkout' %}">
-                     {% csrf_token %}
-                     <button type="submit" class="btn btn-success btn-lg w-100">Checkout</button>
-                 </form>
-             </div>
-         </div>
-     </div>
+                    <form method="post" action="{% url 'shop:checkout' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg w-100">Checkout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% else %}
     <div class="text-center py-5 bg-white rounded shadow-sm">
         <h4 class="text-muted mb-2">Your cart is empty</h4>

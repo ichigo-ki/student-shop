@@ -88,6 +88,26 @@ class CatalogAndSearchTests(TestCase):
     self.assertContains(response, 'Buldak Hot Chicken Ramen')
     self.assertNotContains(response, 'Flash Up Energy')
 
+  def test_price_sorting(self):
+    asc_response = self.client.get(reverse('shop:home'), {'sort': 'price_asc'})
+    asc_products = list(asc_response.context['products'])
+    self.assertEqual(asc_products, [self.energy, self.buldak])  # 95 then 180
+
+    desc_response = self.client.get(reverse('shop:home'), {'sort': 'price_desc'})
+    desc_products = list(desc_response.context['products'])
+    self.assertEqual(desc_products, [self.buldak, self.energy])  # 180 then 95
+
+  def test_in_stock_only_filter(self):
+    sold_out = Product.objects.create(
+        category=self.drinks,
+        title='Sold Out Juice',
+        price=Decimal('70.00'),
+        stock=0,
+    )
+    response = self.client.get(reverse('shop:home'), {'in_stock': '1'})
+    self.assertContains(response, 'Flash Up Energy')
+    self.assertNotContains(response, sold_out.title)
+
 
 class AuthAndAccessControlTests(TestCase):
 
@@ -284,3 +304,65 @@ class OOPAndStockTests(TestCase):
     self.assertFalse(
         Order.objects.filter(buyer=self.student, is_completed=False).exists()
     )
+
+  def test_cart_disables_increase_button_at_max_stock(self):
+    for _ in range(5):  # stock is 5
+      self.client.post(reverse('shop:add_to_cart', args=[self.item.pk]))
+
+    response = self.client.get(reverse('shop:cart_detail'))
+    self.assertEqual(response.status_code, 200)
+    self.assertContains(response, 'Max stock (5)')
+    self.assertContains(response, 'disabled>+')
+
+class OrderHistoryTests(TestCase):
+
+  def setUp(self):
+    self.category = Category.objects.create(name='Drinks', slug='drinks')
+    self.coffee = Product.objects.create(
+        category=self.category,
+        title='Iced Latte',
+        price=Decimal('250.00'),
+        stock=10,
+    )
+    self.student = User.objects.create_user(
+        username='history_student',
+        password='StrongPassword123!',
+    )
+    self.other_student = User.objects.create_user(
+        username='other_student',
+        password='StrongPassword123!',
+    )
+
+  def test_anonymous_user_redirected_from_order_history(self):
+    response = self.client.get(reverse('shop:order_history'))
+    self.assertEqual(response.status_code, 302)
+    self.assertIn(reverse('shop:login'), response.url)
+
+  def test_order_history_shows_only_own_completed_orders(self):
+    # Completed order for student (4 x 250 = 1000 KGS -> 5% discount = 950 KGS)
+    completed_order = Order.objects.create(
+        buyer=self.student, is_completed=True
+    )
+    OrderItem.objects.create(
+        order=completed_order, product=self.coffee, quantity=4
+    )
+
+    # Active (incomplete) cart for student — should NOT appear in order history
+    active_cart = Order.objects.create(buyer=self.student, is_completed=False)
+    OrderItem.objects.create(order=active_cart, product=self.coffee, quantity=1)
+
+    # Completed order for another user — should NOT appear
+    other_order = Order.objects.create(
+        buyer=self.other_student, is_completed=True
+    )
+    OrderItem.objects.create(order=other_order, product=self.coffee, quantity=2)
+
+    self.client.login(username='history_student', password='StrongPassword123!')
+    response = self.client.get(reverse('shop:order_history'))
+
+    self.assertEqual(response.status_code, 200)
+    self.assertEqual(list(response.context['orders']), [completed_order])
+    self.assertContains(response, f'Order #{completed_order.id}')
+    self.assertContains(response, '950.00 KGS')
+    self.assertNotContains(response, f'Order #{active_cart.id}')
+    self.assertNotContains(response, f'Order #{other_order.id}')

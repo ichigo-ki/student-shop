@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction
+from django.db.models import Q
 from .models import Order, OrderItem, Product
 
 
@@ -213,3 +214,53 @@ class CheckoutService(BaseShopService):
     order.is_completed = True
     order.save(update_fields=['is_completed'])
     return order
+
+
+class OrderHistoryService(BaseShopService):
+  """Retrieves completed past orders for the authenticated buyer."""
+
+  def get_completed_orders(self):
+    return (
+        Order.objects.filter(buyer=self._user, is_completed=True)
+        .prefetch_related('orderitem_set__product')
+        .order_by('-created_at', '-id')
+    )
+
+
+# =========================================================
+# 3. CATALOG QUERY SERVICE: Filtering & Sorting
+# =========================================================
+class ProductCatalogService:
+  """Encapsulates product catalog filtering (category, search, stock) and sorting."""
+
+  SORT_OPTIONS = {
+      'newest': '-created_at',
+      'price_asc': 'price',
+      'price_desc': '-price',
+  }
+
+  def get_products(
+      self,
+      category=None,
+      query: str | None = None,
+      in_stock_only: bool = False,
+      sort_by: str = 'newest',
+  ):
+    queryset = Product.objects.select_related('category').all()
+
+    if category is not None:
+      queryset = queryset.filter(category=category)
+
+    if query:
+      cleaned_query = query.strip()
+      if cleaned_query:
+        queryset = queryset.filter(
+            Q(title__icontains=cleaned_query)
+            | Q(description__icontains=cleaned_query)
+        )
+
+    if in_stock_only:
+      queryset = queryset.filter(stock__gt=0)
+
+    order_field = self.SORT_OPTIONS.get(sort_by, '-created_at')
+    return queryset.order_by(order_field, '-id')
